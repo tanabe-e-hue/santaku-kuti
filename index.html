@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3択自動読み上げ選択ツール（写真・動画・削除機能対応版）</title>
+  <title>3択自動読み上げ選択ツール（写真・動画対応版）</title>
 
   <!-- MediaPipe Face Mesh ライブラリ -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
@@ -66,41 +66,16 @@
       margin-bottom: 10px;
     }
     .media-select {
-      margin-bottom: 12px;
-      font-size: 0.85rem;
-      background: #f9f9f9;
-      padding: 8px;
-      border-radius: 6px;
-      border: 1px solid #eee;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
     }
-    .media-select-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
+    .media-select input[type="text"], .media-select input[type="file"] {
+      width: 100%;
+      font-size: 0.85rem;
+      padding: 6px;
       margin-top: 4px;
-    }
-    .media-select input[type="text"], 
-    .media-select input[type="file"] {
-      flex: 1;
-      font-size: 0.85rem;
-      padding: 5px;
       border: 1px solid #ccc;
-      border-radius: 4px;
-      background: white;
-    }
-    /* 削除ボタン */
-    .clear-btn {
-      padding: 4px 10px;
-      font-size: 0.8rem;
-      background-color: #ff3b30;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-    .clear-btn:hover {
-      background-color: #d70015;
+      border-radius: 6px;
     }
     .start-btn {
       padding: 15px 40px;
@@ -300,24 +275,12 @@
         
         <div class="media-select">
           <label>写真/画像ファイル:</label>
-          <div class="media-select-row">
-            <input type="file" id="left-img-file" accept="image/*">
-            <button class="clear-btn" onclick="clearInput('left-img-file')">削除</button>
-          </div>
+          <input type="file" id="left-img-file" accept="image/*">
         </div>
         <div class="media-select">
-          <label>動画ファイル:</label>
-          <div class="media-select-row">
-            <input type="file" id="left-video-file" accept="video/*">
-            <button class="clear-btn" onclick="clearInput('left-video-file')">削除</button>
-          </div>
-        </div>
-        <div class="media-select">
-          <label>YouTube URL:</label>
-          <div class="media-select-row">
-            <input type="text" id="left-url" placeholder="https://www.youtube.com/watch?v=...">
-            <button class="clear-btn" onclick="clearInput('left-url')">削除</button>
-          </div>
+          <label>動画ファイル または YouTube URL:</label>
+          <input type="file" id="left-video-file" accept="video/*">
+          <input type="text" id="left-url" placeholder="YouTube URL">
         </div>
       </div>
 
@@ -328,24 +291,12 @@
         
         <div class="media-select">
           <label>写真/画像ファイル:</label>
-          <div class="media-select-row">
-            <input type="file" id="center-img-file" accept="image/*">
-            <button class="clear-btn" onclick="clearInput('center-img-file')">削除</button>
-          </div>
+          <input type="file" id="center-img-file" accept="image/*">
         </div>
         <div class="media-select">
-          <label>動画ファイル:</label>
-          <div class="media-select-row">
-            <input type="file" id="center-video-file" accept="video/*">
-            <button class="clear-btn" onclick="clearInput('center-video-file')">削除</button>
-          </div>
-        </div>
-        <div class="media-select">
-          <label>YouTube URL:</label>
-          <div class="media-select-row">
-            <input type="text" id="center-url" placeholder="https://www.youtube.com/watch?v=...">
-            <button class="clear-btn" onclick="clearInput('center-url')">削除</button>
-          </div>
+          <label>動画ファイル または YouTube URL:</label>
+          <input type="file" id="center-video-file" accept="video/*">
+          <input type="text" id="center-url" placeholder="YouTube URL">
         </div>
       </div>
 
@@ -356,24 +307,12 @@
         
         <div class="media-select">
           <label>写真/画像ファイル:</label>
-          <div class="media-select-row">
-            <input type="file" id="right-img-file" accept="image/*">
-            <button class="clear-btn" onclick="clearInput('right-img-file')">削除</button>
-          </div>
+          <input type="file" id="right-img-file" accept="image/*">
         </div>
         <div class="media-select">
-          <label>動画ファイル:</label>
-          <div class="media-select-row">
-            <input type="file" id="right-video-file" accept="video/*">
-            <button class="clear-btn" onclick="clearInput('right-video-file')">削除</button>
-          </div>
-        </div>
-        <div class="media-select">
-          <label>YouTube URL:</label>
-          <div class="media-select-row">
-            <input type="text" id="right-url" placeholder="https://www.youtube.com/watch?v=...">
-            <button class="clear-btn" onclick="clearInput('right-url')">削除</button>
-          </div>
+          <label>動画ファイル または YouTube URL:</label>
+          <input type="file" id="right-video-file" accept="video/*">
+          <input type="text" id="right-url" placeholder="YouTube URL">
         </div>
       </div>
 
@@ -421,14 +360,6 @@
 
     const synth = window.speechSynthesis;
     let maleVoice = null;
-
-    // 入力項目クリア処理関数
-    function clearInput(elementId) {
-      const elem = document.getElementById(elementId);
-      if (elem) {
-        elem.value = "";
-      }
-    }
 
     function loadVoices() {
       const voices = synth.getVoices();
