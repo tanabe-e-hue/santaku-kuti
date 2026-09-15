@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3択自動読み上げ選択ツール（口あけ高感度版）</title>
+  <title>3択自動読み上げ選択ツール（YouTube再生機能付き）</title>
 
   <!-- MediaPipe Face Mesh ライブラリ -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
@@ -32,32 +32,44 @@
       justify-content: center;
       height: 100%;
       padding: 20px;
+      overflow-y: auto;
     }
     .input-container {
       display: flex;
       gap: 15px;
-      margin-bottom: 30px;
-      width: 90%;
-      max-width: 950px;
+      margin-bottom: 25px;
+      width: 95%;
+      max-width: 1000px;
     }
     .input-box {
       flex: 1;
       display: flex;
       flex-direction: column;
+      background: white;
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
     .input-box label {
       font-size: 1.1rem;
       font-weight: bold;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       color: #333;
     }
     .input-box textarea {
-      height: 120px;
+      height: 70px;
       font-size: 1.1rem;
-      padding: 12px;
+      padding: 8px;
       border: 2px solid #ccc;
       border-radius: 8px;
       resize: none;
+      margin-bottom: 10px;
+    }
+    .input-box input[type="text"] {
+      font-size: 0.95rem;
+      padding: 8px;
+      border: 2px solid #ccc;
+      border-radius: 8px;
     }
     .start-btn {
       padding: 15px 40px;
@@ -95,15 +107,15 @@
       border-right: none;
     }
 
-    /* 横並び3つの枠サイズ（横 260px × 縦 220px） */
     .option-box {
-      width: 260px;
-      height: 220px;
+      width: 280px;
+      height: 240px;
       max-width: 90%;
       max-height: 85%;
       border: 4px solid #ccc;
       border-radius: 16px;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 12px;
@@ -117,7 +129,6 @@
       word-break: break-all;
     }
 
-    /* 交互フォーカス（オレンジ） */
     .option-box.active {
       border: 8px solid #ff9500;
       background-color: #fff3e0;
@@ -125,7 +136,6 @@
       transform: scale(1.03);
     }
 
-    /* 決定完了（緑色） */
     .option-box.selected {
       border: 10px solid #34c759 !important;
       background-color: #e8f5e9 !important;
@@ -142,11 +152,17 @@
       width: 180px;
       height: 135px;
       border-radius: 8px;
-      border: 3px solid #007aff;
+      border: 4px solid #007aff;
       object-fit: cover;
       transform: scaleX(-1);
       z-index: 10;
       background: #000;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    #camera-preview.mouth-open-detected {
+      border-color: #ff3b30 !important;
+      box-shadow: 0 0 20px rgba(255, 59, 48, 0.9);
     }
 
     /* 状態インジケーター */
@@ -163,9 +179,10 @@
       font-weight: bold;
       z-index: 10;
       text-align: center;
+      transition: background-color 0.2s;
     }
 
-    /* 3. 決定完了画面 */
+    /* 3. 決定完了＆YouTube表示画面 */
     #result-screen {
       display: none;
       position: fixed;
@@ -173,20 +190,41 @@
       left: 0;
       width: 100vw;
       height: 100vh;
-      background: rgba(0, 0, 0, 0.85);
+      background: rgba(0, 0, 0, 0.9);
       color: white;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       z-index: 100;
+      padding: 20px;
     }
     #result-text {
-      font-size: 3rem;
+      font-size: 2.2rem;
       font-weight: bold;
-      margin-bottom: 30px;
+      margin-bottom: 15px;
       text-align: center;
-      padding: 0 20px;
     }
+    
+    /* 大きめの動画プレイヤー枠 */
+    .video-container {
+      width: 80vw;
+      max-width: 900px;
+      height: 50vh;
+      max-height: 520px;
+      background-color: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      display: none; /* 動画がない場合は隠す */
+    }
+
+    .video-container iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
     .reset-btn {
       padding: 12px 30px;
       font-size: 1.2rem;
@@ -205,19 +243,25 @@
 
   <!-- 1. 設定画面 -->
   <div id="setup-screen">
-    <h1 style="margin-bottom: 20px;">3択の内容を設定してください</h1>
+    <h1 style="margin-bottom: 20px;">3択の内容とYouTube URLを設定してください</h1>
     <div class="input-container">
       <div class="input-box">
-        <label for="left-text">左側の文章 (選択肢 1)</label>
-        <textarea id="left-text" placeholder="例: お茶">お茶</textarea>
+        <label for="left-text">左側 (選択肢 1)</label>
+        <textarea id="left-text" placeholder="例: 電車動画">電車動画</textarea>
+        <label style="font-size:0.9rem; margin-top:5px;">YouTube URL (任意):</label>
+        <input type="text" id="left-url" placeholder="https://www.youtube.com/watch?v=...">
       </div>
       <div class="input-box">
-        <label for="center-text">中央の文章 (選択肢 2)</label>
-        <textarea id="center-text" placeholder="例: お水">お水</textarea>
+        <label for="center-text">中央 (選択肢 2)</label>
+        <textarea id="center-text" placeholder="例: 音楽動画">音楽動画</textarea>
+        <label style="font-size:0.9rem; margin-top:5px;">YouTube URL (任意):</label>
+        <input type="text" id="center-url" placeholder="https://www.youtube.com/watch?v=...">
       </div>
       <div class="input-box">
-        <label for="right-text">右側の文章 (選択肢 3)</label>
-        <textarea id="right-text" placeholder="例: ジュース">ジュース</textarea>
+        <label for="right-text">右側 (選択肢 3)</label>
+        <textarea id="right-text" placeholder="例: 動物動画">動物動画</textarea>
+        <label style="font-size:0.9rem; margin-top:5px;">YouTube URL (任意):</label>
+        <input type="text" id="right-url" placeholder="https://www.youtube.com/watch?v=...">
       </div>
     </div>
     <button class="start-btn" onclick="initCameraAndStart()">カメラ起動 & 口あけ選択スタート</button>
@@ -240,26 +284,29 @@
     <video id="camera-preview" autoplay playsinline muted></video>
   </div>
 
-  <!-- 3. 決定完了画面 -->
+  <!-- 3. 決定完了＆YouTube動画再生画面 -->
   <div id="result-screen">
     <div id="result-text"></div>
+    <div id="video-wrapper" class="video-container">
+      <iframe id="youtube-player" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    </div>
     <button class="reset-btn" onclick="resetApp()">もう一度設定する</button>
   </div>
 
   <script>
     let options = ["", "", ""];
+    let youtubeUrls = ["", "", ""];
     let currentIndex = 0;
     let intervalId = null;
     let isSelected = false;
+    let canSelect = false;
 
     const synth = window.speechSynthesis;
     let maleVoice = null;
 
-    // 優しい男性の声を探す関数
     function loadVoices() {
       const voices = synth.getVoices();
       const jaVoices = voices.filter(v => v.lang.includes('ja'));
-
       maleVoice = jaVoices.find(v => 
         v.name.includes('Keita') || 
         v.name.includes('Male') || 
@@ -273,27 +320,37 @@
     }
     loadVoices();
 
-    function speak(text) {
+    function speak(text, onEndCallback = null) {
       if (!text) return;
       if (synth.speaking) synth.cancel();
 
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'ja-JP';
 
-      if (maleVoice) {
-        utterance.voice = maleVoice;
-      }
-
+      if (maleVoice) utterance.voice = maleVoice;
       utterance.pitch = 0.85;
       utterance.rate = 0.95;
 
+      if (onEndCallback) utterance.onend = onEndCallback;
       synth.speak(utterance);
+    }
+
+    // YouTubeのURLからVideo IDを取り出す関数
+    function extractYouTubeId(url) {
+      if (!url) return null;
+      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+      const match = url.match(regExp);
+      return (match && match[2].length === 11) ? match[2] : null;
     }
 
     async function initCameraAndStart() {
       options[0] = document.getElementById('left-text').value.trim() || '選択肢 1';
       options[1] = document.getElementById('center-text').value.trim() || '選択肢 2';
       options[2] = document.getElementById('right-text').value.trim() || '選択肢 3';
+
+      youtubeUrls[0] = document.getElementById('left-url').value.trim();
+      youtubeUrls[1] = document.getElementById('center-url').value.trim();
+      youtubeUrls[2] = document.getElementById('right-url').value.trim();
 
       document.getElementById('box-left').innerText = options[0];
       document.getElementById('box-center').innerText = options[1];
@@ -303,7 +360,8 @@
       document.getElementById('selection-screen').style.display = 'block';
 
       const statusMsg = document.getElementById('status-msg');
-      statusMsg.innerText = "カメラ起動中...";
+      statusMsg.innerText = "カメラ準備中...";
+      canSelect = false;
 
       const videoElement = document.getElementById('input-video');
       const previewElement = document.getElementById('camera-preview');
@@ -335,8 +393,25 @@
         await camera.start();
         previewElement.srcObject = videoElement.srcObject;
 
-        statusMsg.innerText = "口を少し（約1cm）開けると決定されます";
-        startSelectionLoop();
+        statusMsg.innerText = "カメラ接続完了。しばらくお待ちください...";
+
+        // 1. カメラ許可後 5秒待機
+        setTimeout(() => {
+          statusMsg.innerText = "使い方のアナウンス中...";
+          const guideText = "画面の枠が順番に読み上げられます。選びたい項目が光った時に口を少し開けてください。";
+
+          // 2. 音声説明の発信
+          speak(guideText, () => {
+            statusMsg.innerText = "まもなく開始します...";
+
+            // 3. 説明終了後 2秒待機して巡回スタート
+            setTimeout(() => {
+              canSelect = true;
+              statusMsg.innerText = "口を開けて選択できます";
+              startSelectionLoop();
+            }, 2000);
+          });
+        }, 5000);
 
       } catch (err) {
         console.error(err);
@@ -345,15 +420,17 @@
       }
     }
 
-    // 高感度な口あけ判定処理
     function onFaceMeshResults(results) {
+      const previewElement = document.getElementById('camera-preview');
+      const statusMsg = document.getElementById('status-msg');
+
       if (isSelected || !results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+        previewElement.classList.remove('mouth-open-detected');
         return;
       }
 
       const landmarks = results.multiFaceLandmarks[0];
 
-      // 13: 上唇中央, 14: 下唇中央, 10: 額上部, 152: 顎先端
       const upperLip = landmarks[13];
       const lowerLip = landmarks[14];
       const topHead = landmarks[10];
@@ -361,12 +438,21 @@
 
       const mouthDistance = Math.hypot(upperLip.x - lowerLip.x, upperLip.y - lowerLip.y);
       const faceHeight = Math.hypot(topHead.x - chin.x, topHead.y - chin.y);
-
       const mouthRatio = mouthDistance / faceHeight;
 
-      // 【感度アップ調整】ほんの少し（1cm程度）開けた状態（しきい値: 0.025）で検知
       if (mouthRatio > 0.025) {
-        triggerSelection();
+        previewElement.classList.add('mouth-open-detected');
+        if (canSelect) {
+          statusMsg.innerText = "口あけ検知中！";
+          statusMsg.style.color = "#ff3b30";
+          triggerSelection();
+        }
+      } else {
+        previewElement.classList.remove('mouth-open-detected');
+        if (canSelect && !isSelected) {
+          statusMsg.innerText = "口を少し（約1cm）開けると決定されます";
+          statusMsg.style.color = "#00ffcc";
+        }
       }
     }
 
@@ -381,11 +467,10 @@
       ];
 
       boxes.forEach(b => b.classList.remove('selected'));
-
       updateHighlightAndSpeak();
 
       intervalId = setInterval(() => {
-        currentIndex = (currentIndex + 1) % 3; // 0 -> 1 -> 2 -> 0 と巡回
+        currentIndex = (currentIndex + 1) % 3;
         updateHighlightAndSpeak();
       }, 3000);
     }
@@ -410,7 +495,7 @@
     }
 
     function triggerSelection() {
-      if (isSelected) return;
+      if (isSelected || !canSelect) return;
       isSelected = true;
 
       clearInterval(intervalId);
@@ -426,12 +511,27 @@
 
       const selectedBox = boxes[currentIndex];
       const selectedText = options[currentIndex];
+      const videoUrl = youtubeUrls[currentIndex];
+      const videoId = extractYouTubeId(videoUrl);
 
       selectedBox.classList.add('selected');
 
       setTimeout(() => {
         speak(selectedText + " が選択されました");
         document.getElementById('result-text').innerText = "「" + selectedText + "」 を選択しました";
+        
+        const videoWrapper = document.getElementById('video-wrapper');
+        const iframe = document.getElementById('youtube-player');
+
+        // YouTube動画が指定されている場合は自動再生
+        if (videoId) {
+          iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+          videoWrapper.style.display = 'block';
+        } else {
+          iframe.src = "";
+          videoWrapper.style.display = 'none';
+        }
+
         document.getElementById('result-screen').style.display = 'flex';
       }, 800);
     }
@@ -439,15 +539,24 @@
     function resetApp() {
       if (synth.speaking) synth.cancel();
       isSelected = false;
+      canSelect = false;
+
+      // 動画再生を停止
+      const iframe = document.getElementById('youtube-player');
+      iframe.src = "";
+
       document.getElementById('result-screen').style.display = 'none';
       document.getElementById('selection-screen').style.display = 'none';
       document.getElementById('setup-screen').style.display = 'flex';
     }
 
-    // バックアップ操作（画面タップ・スペースキー）
-    document.getElementById('selection-screen').addEventListener('click', triggerSelection);
+    document.getElementById('selection-screen').addEventListener('click', () => {
+      if (canSelect) triggerSelection();
+    });
     window.addEventListener('keydown', (e) => {
-      if (e.code === 'Space' || e.code === 'Enter') triggerSelection();
+      if ((e.code === 'Space' || e.code === 'Enter') && canSelect) {
+        triggerSelection();
+      }
     });
   </script>
 </body>
